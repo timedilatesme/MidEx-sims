@@ -36,7 +36,7 @@ tables:
       magnitudes: $blue.M
       coefficients: $blue.coeff
       filter:  bessell-B
-      
+
     # --- Dynamically Generated Magnitude Output Columns ---
     mag_F062, mag_F087, mag_F106, mag_F129, mag_F158, mag_F184, mag_F146, mag_F213, mag_A, mag_B, mag_C, mag_D, mag_g, mag_r, mag_i, mag_z, mag_y: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
       coefficients: $blue.coeff
@@ -44,7 +44,7 @@ tables:
       redshift: $blue.z
       stellar_mass: $blue.stellar_mass
       cosmology: $cosmology
-      
+
     physical_size: !skypy.galaxies.morphology.late_type_lognormal_size
       magnitude: $blue.M
       alpha: 0.21
@@ -61,8 +61,8 @@ tables:
       e_ratio: 0.45
       e_sum: 3.5
       size: !len [$blue.z]
-      
-  red1: 
+
+  red1:
     z1, M1: !skypy.galaxies.schechter_lf
               redshift: $z_range
               M_star: $M_star_red
@@ -71,7 +71,7 @@ tables:
               m_lim: $mag_lim
               sky_area: $fsky
               cosmology: $cosmology
-  red2:  
+  red2:
     z2, M2: !skypy.galaxies.schechter_lf
               redshift: $z_range
               M_star: -17.00
@@ -94,7 +94,7 @@ tables:
       magnitudes: $red.M
       coefficients: $red.coeff
       filter:  bessell-B
-      
+
     # --- Dynamically Generated Magnitude Output Columns ---
     mag_F062, mag_F087, mag_F106, mag_F129, mag_F158, mag_F184, mag_F146, mag_F213, mag_A, mag_B, mag_C, mag_D, mag_g, mag_r, mag_i, mag_z, mag_y: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
       coefficients: $red.coeff
@@ -102,7 +102,7 @@ tables:
       redshift: $red.z
       stellar_mass: $red.stellar_mass
       cosmology: $cosmology
-      
+
     physical_size: !skypy.galaxies.morphology.early_type_lognormal_size
       magnitude: $red.M
       a: 0.60

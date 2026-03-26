@@ -256,7 +256,6 @@ def create_lensing_animation(lens_class,
     
     fig, plot_elements = setup_animation_figure(bands, num_images, data, rgb_bands, lens_class)
     
-    # THE UPDATE FUNCTION IS NOW LIGHTNING FAST - NO MATH, JUST SETTING ARRAYS
     def update(frame):
         artists = []
         for band in bands:
@@ -282,7 +281,6 @@ def create_lensing_animation(lens_class,
     
     if save_path is not None:
         print(f"Saving animation to: {save_path} ...")
-        # SMART SAVE: Detects if you want an ultra-fast mp4 or standard gif
         if save_path.endswith('.mp4'):
             writer = animation.FFMpegWriter(fps=int(1000/interval_ms), codec="h264")
             anim.save(save_path, writer=writer)
@@ -300,8 +298,6 @@ def create_lensing_animation(lens_class,
         print("Skipping HTML render. Animation is saved to disk!")
         return None
 
-import numpy as np
-import matplotlib.pyplot as plt
 
 def plot_lightcurves(lens_class, bands, smooth_time_array, cadence_dict=None, microlensing=True, time_limits=None):
     """

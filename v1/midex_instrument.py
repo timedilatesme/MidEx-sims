@@ -2,7 +2,7 @@
 midex_instrument.py
 
 Single Source of Truth for the MidEx simulated observatory.
-Handles speclite filter registration, lenstronomy image observation kwargs,
+Handles speclite and slsim filter registration, lenstronomy image observation kwargs,
 and SkyPy configuration generation.
 """
 
@@ -18,73 +18,103 @@ import lenstronomy.Util.util as util
 # ==========================================
 MIDEX_BANDS = {
     "A": {
-        "wave_center": 4000.0, "wave_width": 1000.0,             # top-hat filter properties
-        "exposure_time": 90.0, "sky_brightness": 22.0,           # lenstronomy requirements
+        "wave_center": 4000.0, "wave_width": 1000.0,
+        "exposure_time": 90.0, "sky_brightness": 22.0,
         "magnitude_zero_point": 26.0, "num_exposures": 50,
         "seeing": 0.5, "psf_type": "GAUSSIAN",
-        "cadence_days": 20.0                                      # band-specific cadence
+        "cadence_days": 20.0,
     },
     "B": {
         "wave_center": 5000.0, "wave_width": 1000.0,
         "exposure_time": 90.0, "sky_brightness": 21.5,
         "magnitude_zero_point": 26.0, "num_exposures": 50,
         "seeing": 0.5, "psf_type": "GAUSSIAN",
-        "cadence_days": 20.0
+        "cadence_days": 20.0,
     },
     "C": {
         "wave_center": 6000.0, "wave_width": 1000.0,
         "exposure_time": 90.0, "sky_brightness": 21.0,
         "magnitude_zero_point": 26.0, "num_exposures": 50,
         "seeing": 0.5, "psf_type": "GAUSSIAN",
-        "cadence_days": 20.0
+        "cadence_days": 20.0,
     },
     "D": {
         "wave_center": 7000.0, "wave_width": 1000.0,
         "exposure_time": 90.0, "sky_brightness": 20.5,
         "magnitude_zero_point": 26.0, "num_exposures": 50,
         "seeing": 0.5, "psf_type": "GAUSSIAN",
-        "cadence_days": 20.0
+        "cadence_days": 20.0,
     },
 }
 
 MIDEX_CAMERA = {
-    "read_noise": 5.0,     
-    "pixel_scale": 0.15,   
-    "ccd_gain": 2.0,       
+    "read_noise": 5.0,
+    "pixel_scale": 0.15,
+    "ccd_gain": 2.0,
 }
+
+# Keys forwarded to lenstronomy (excludes instrument-specific extras like
+# "wave_center", "wave_width", "cadence_days").
+_LENSTRONOMY_KEYS = [
+    "exposure_time",
+    "sky_brightness",
+    "magnitude_zero_point",
+    "num_exposures",
+    "seeing",
+    "psf_type",
+]
 
 
 # ==========================================
 # 2. SPECLITE FILTER GENERATOR
 # ==========================================
+
 def get_midex_band_names(prefix="MidEx-"):
-    """Returns a list of registered filter names (e.g., ['MidEx-A', ...])"""
-    return [f"{prefix}{band}" for band in MIDEX_BANDS.keys()]
+    """Return a list of registered speclite filter names (e.g. ``['MidEx-A', ...]``).
+
+    :param prefix: Prefix prepended to each band key.
+    :return: List of filter name strings.
+    """
+    return [f"{prefix}{band}" for band in MIDEX_BANDS]
+
 
 def configure_midex_filters(save_path=None):
-    """Generates top-hat filters from the master dict and registers them in speclite."""
+    """Generate top-hat filters from the master dict and register them in speclite.
+
+    Safe to call multiple times — skips filters that are already registered.
+
+    :param save_path: Optional directory path to persist filter files on disk.
+    """
     group_name = "MidEx"
+
+    # Collect names of already-registered filters to avoid duplicates
+    try:
+        existing = {f.name for f in speclite.filters.load_filters("MidEx-*")}
+    except Exception:
+        existing = set()
 
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
 
     for band, props in MIDEX_BANDS.items():
-        min_wave = props["wave_center"] - (props["wave_width"] / 2.0)
-        max_wave = props["wave_center"] + (props["wave_width"] / 2.0)
-        
+        filter_name = f"{group_name}-{band}"
+        if filter_name in existing:
+            continue
+
+        min_wave = props["wave_center"] - props["wave_width"] / 2.0
+        max_wave = props["wave_center"] + props["wave_width"] / 2.0
+
         wave = np.linspace(min_wave - 100, max_wave + 100, 1000)
         wavelength = wave * u.Angstrom
-        
         response = np.zeros_like(wave)
-        mask = (wave >= min_wave) & (wave <= max_wave)
-        response[mask] = 1.0  
+        response[(wave >= min_wave) & (wave <= max_wave)] = 1.0
 
         speclite_filter = speclite.filters.FilterResponse(
             wavelength=wavelength,
             response=response,
             meta=dict(group_name=group_name, band_name=band),
         )
-        
+
         if save_path is not None:
             speclite_filter.save(save_path)
 
@@ -96,54 +126,94 @@ class MidEx(object):
     """Class contains MidEx instrument and observation configurations for Lenstronomy."""
 
     def __init__(self, band="A", psf_type="GAUSSIAN", coadd_years=10):
-        if band.isalpha():
-            band = band.upper()
-            
+        """
+        :param band: One of the keys in ``MIDEX_BANDS`` (``'A'``, ``'B'``, …).
+        :param psf_type: PSF model type; only ``'GAUSSIAN'`` is currently supported.
+        :param coadd_years: Number of co-added years (1–10). Scales
+            ``num_exposures`` proportionally.
+        """
+        band = band.upper()
         if band not in MIDEX_BANDS:
-            raise ValueError(f"band {band} not supported! Choose from {list(MIDEX_BANDS.keys())}.")
-            
-        lenstronomy_keys = ["exposure_time", "sky_brightness", "magnitude_zero_point", "num_exposures", "seeing", "psf_type"]
-        self.obs = {k: MIDEX_BANDS[band][k] for k in lenstronomy_keys}
-        
+            raise ValueError(
+                f"Band '{band}' not supported. Choose from {list(MIDEX_BANDS)}."
+            )
         if psf_type != "GAUSSIAN":
-            raise ValueError(f"psf_type {psf_type} not supported!")
+            raise ValueError(f"psf_type '{psf_type}' not supported.")
+        if not (1 <= coadd_years <= 10):
+            raise ValueError(
+                f"coadd_years={coadd_years} not supported. Choose an integer between 1 and 10."
+            )
 
-        if coadd_years > 10 or coadd_years < 1:
-            raise ValueError(f"{coadd_years} coadd_years not supported! Choose an integer between 1 and 10.")
-        elif coadd_years != 10:
+        self.obs = {k: MIDEX_BANDS[band][k] for k in _LENSTRONOMY_KEYS}
+
+        if coadd_years != 10:
             self.obs["num_exposures"] = coadd_years * self.obs["num_exposures"] // 10
 
         self.camera = copy.deepcopy(MIDEX_CAMERA)
 
-    def kwargs_single_band(self):
+    def kwargs_single_band(self) -> dict:
+        """Return merged camera + observation kwargs for lenstronomy.
+
+        :return: Dict with all keys expected by lenstronomy's ``SimAPI``.
+        """
         return util.merge_dicts(self.camera, self.obs)
 
+
 # ==========================================
-# 4. SKYPY YAML CONFIG GENERATOR
+# 4. SELF-REGISTRATION INTO SLSIM REGISTRY
 # ==========================================
+# Importing midex_instrument is sufficient to make MidEx bands available
+# everywhere in slsim that queries image_quality_lenstronomy.
+
+def _register():
+    """Register MidEx into slsim's observatory registry (called on import)."""
+    try:
+        from slsim.ImageSimulation.image_quality_lenstronomy import register_observatory
+        register_observatory(
+            name="MidEx",
+            observatory_class=MidEx,
+            bands=list(MIDEX_BANDS.keys()),
+            speclite_fmt=lambda band: f"MidEx-{band}",
+        )
+    except ImportError:
+        # slsim not installed - no registration
+        pass
+
+
+_register()
+
+
+# ==========================================
+# 5. SKYPY YAML CONFIG GENERATOR
+# ==========================================
+
 def generate_skypy_config(output_path="configs/roman-lsst-MidEx-like.yml"):
+    """Generate a SkyPy YAML configuration that includes MidEx, Roman, and LSST bands.
+
+    The filter list and magnitude columns are derived dynamically from
+    ``MIDEX_BANDS``, so adding a new band to the master dict is the only
+    change required.
+
+    :param output_path: Destination path for the YAML file.
     """
-    Generates a dynamic SkyPy configuration file incorporating MidEx, Roman, and LSST bands
-    based on the MIDEX_BANDS dictionary.
-    """
-    # Define base filters and mags
-    roman_filters = ['Roman-F062', 'Roman-F087', 'Roman-F106', 'Roman-F129', 'Roman-F158', 'Roman-F184', 'Roman-F146', 'Roman-F213']
-    roman_mags = ['mag_F062', 'mag_F087', 'mag_F106', 'mag_F129', 'mag_F158', 'mag_F184', 'mag_F146', 'mag_F213']
+    roman_filters = [
+        "Roman-F062", "Roman-F087", "Roman-F106", "Roman-F129",
+        "Roman-F158", "Roman-F184", "Roman-F146", "Roman-F213",
+    ]
+    roman_mags = [
+        "mag_F062", "mag_F087", "mag_F106", "mag_F129",
+        "mag_F158", "mag_F184", "mag_F146", "mag_F213",
+    ]
+    lsst_filters = ["lsst2016-g", "lsst2016-r", "lsst2016-i", "lsst2016-z", "lsst2016-y"]
+    lsst_mags = ["mag_g", "mag_r", "mag_i", "mag_z", "mag_y"]
 
-    lsst_filters = ['lsst2016-g', 'lsst2016-r', 'lsst2016-i', 'lsst2016-z', 'lsst2016-y']
-    lsst_mags = ['mag_g', 'mag_r', 'mag_i', 'mag_z', 'mag_y']
+    midex_filters = [f"MidEx-{b}" for b in MIDEX_BANDS]
+    midex_mags = [f"mag_{b}" for b in MIDEX_BANDS]
 
-    # Construct dynamic MidEx strings
-    midex_band_keys = list(MIDEX_BANDS.keys())
-    midex_filters = [f"MidEx-{b}" for b in midex_band_keys]
-    midex_mags = [f"mag_{b}" for b in midex_band_keys]
-
-    # Combine them all
     all_filters = roman_filters + midex_filters + lsst_filters
     all_mags = roman_mags + midex_mags + lsst_mags
 
-    # Format them for the YAML file
-    filter_str = ", ".join([f"'{f}'" for f in all_filters])
+    filter_str = ", ".join(f"'{f}'" for f in all_filters)
     mag_str = ", ".join(all_mags)
 
     yaml_content = f"""mag_lim: 30
@@ -184,7 +254,7 @@ tables:
       magnitudes: $blue.M
       coefficients: $blue.coeff
       filter:  bessell-B
-      
+
     # --- Dynamically Generated Magnitude Output Columns ---
     {mag_str}: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
       coefficients: $blue.coeff
@@ -192,7 +262,7 @@ tables:
       redshift: $blue.z
       stellar_mass: $blue.stellar_mass
       cosmology: $cosmology
-      
+
     physical_size: !skypy.galaxies.morphology.late_type_lognormal_size
       magnitude: $blue.M
       alpha: 0.21
@@ -209,8 +279,8 @@ tables:
       e_ratio: 0.45
       e_sum: 3.5
       size: !len [$blue.z]
-      
-  red1: 
+
+  red1:
     z1, M1: !skypy.galaxies.schechter_lf
               redshift: $z_range
               M_star: $M_star_red
@@ -219,7 +289,7 @@ tables:
               m_lim: $mag_lim
               sky_area: $fsky
               cosmology: $cosmology
-  red2:  
+  red2:
     z2, M2: !skypy.galaxies.schechter_lf
               redshift: $z_range
               M_star: -17.00
@@ -242,7 +312,7 @@ tables:
       magnitudes: $red.M
       coefficients: $red.coeff
       filter:  bessell-B
-      
+
     # --- Dynamically Generated Magnitude Output Columns ---
     {mag_str}: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
       coefficients: $red.coeff
@@ -250,7 +320,7 @@ tables:
       redshift: $red.z
       stellar_mass: $red.stellar_mass
       cosmology: $cosmology
-      
+
     physical_size: !skypy.galaxies.morphology.early_type_lognormal_size
       magnitude: $red.M
       a: 0.60
@@ -271,27 +341,25 @@ tables:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         f.write(yaml_content)
-    
+
     print(f"SkyPy config successfully generated at: {output_path}")
 
-  
+
 # ==========================================
-# 5. MIDEX TIME SAMPLING (CADENCE)
+# 6. MIDEX TIME SAMPLING (CADENCE)
 # ==========================================
+
 def get_midex_cadence_dict(duration_days=3650, starting_time_offset=0):
-    """
-    Generates a mock observation cadence for MidEx bands based on the master dictionary.
+    """Generate a mock observation cadence for all MidEx bands.
+
+    :param duration_days: Total survey duration in days.
+    :param starting_time_offset: Time offset (days) added to all observation times.
+    :return: Dict mapping band key → numpy array of observation times (days).
     """
     cadence_dict = {}
-    
     for band, props in MIDEX_BANDS.items():
-        cadence = props.get("cadence_days", 5.0) # Fallback to 5 if not defined
-        
-        # Generates evenly spaced observations over the duration
+        cadence = props.get("cadence_days", 5.0)
         times = np.arange(0, duration_days, cadence) + starting_time_offset
-        
-        # Add a tiny bit of random jitter (+/- 0.5 days) for realism
         jitter = np.random.uniform(-0.5, 0.5, size=len(times))
         cadence_dict[band] = times + jitter
-        
     return cadence_dict
