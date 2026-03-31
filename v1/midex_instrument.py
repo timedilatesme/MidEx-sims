@@ -17,32 +17,60 @@ import lenstronomy.Util.util as util
 # 1. MASTER INSTRUMENT DICTIONARY FOR MidEx
 # ==========================================
 MIDEX_BANDS = {
-    "A": {
+    "F115": {
+        "wave_center": 1150.0, "wave_width": 400.0,
+        "exposure_time": 90.0, "sky_brightness": 27.0, 
+        "magnitude_zero_point": 26.0, "num_exposures": 50,
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
+        "cadence_days": 20.0,
+    },
+    "F150": {
+        "wave_center": 1500.0, "wave_width": 1000.0,
+        "exposure_time": 90.0, "sky_brightness": 26.0, 
+        "magnitude_zero_point": 26.0, "num_exposures": 50,
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
+        "cadence_days": 20.0,
+    },
+    "F250": {
+        "wave_center": 2500.0, "wave_width": 1000.0,
+        "exposure_time": 90.0, "sky_brightness": 25.0,
+        "magnitude_zero_point": 26.0, "num_exposures": 50,
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
+        "cadence_days": 20.0,
+    },
+    "F330": {
+        "wave_center": 3300.0, "wave_width": 600.0,
+        "exposure_time": 90.0, "sky_brightness": 23.5,
+        "magnitude_zero_point": 26.0, "num_exposures": 50,
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
+        "cadence_days": 20.0,
+    },
+    "F400": {
         "wave_center": 4000.0, "wave_width": 1000.0,
+        "exposure_time": 90.0, "sky_brightness": 22.5,
+        "magnitude_zero_point": 26.0, "num_exposures": 50,
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
+        "cadence_days": 20.0,
+    },
+    "F500": {
+        "wave_center": 5000.0, "wave_width": 1000.0,
+        "exposure_time": 90.0, "sky_brightness": 22.5,
+        "magnitude_zero_point": 26.0, "num_exposures": 50,
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
+        "cadence_days": 20.0,
+    },
+    "F600": {
+        "wave_center": 6000.0, "wave_width": 1000.0,
         "exposure_time": 90.0, "sky_brightness": 22.0,
         "magnitude_zero_point": 26.0, "num_exposures": 50,
-        "seeing": 0.5, "psf_type": "GAUSSIAN",
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
         "cadence_days": 20.0,
     },
-    "B": {
-        "wave_center": 5000.0, "wave_width": 1000.0,
-        "exposure_time": 90.0, "sky_brightness": 21.5,
-        "magnitude_zero_point": 26.0, "num_exposures": 50,
-        "seeing": 0.5, "psf_type": "GAUSSIAN",
-        "cadence_days": 20.0,
-    },
-    "C": {
-        "wave_center": 6000.0, "wave_width": 1000.0,
-        "exposure_time": 90.0, "sky_brightness": 21.0,
-        "magnitude_zero_point": 26.0, "num_exposures": 50,
-        "seeing": 0.5, "psf_type": "GAUSSIAN",
-        "cadence_days": 20.0,
-    },
-    "D": {
+    "F700": {
         "wave_center": 7000.0, "wave_width": 1000.0,
-        "exposure_time": 90.0, "sky_brightness": 20.5,
+        "exposure_time": 90.0, "sky_brightness": 22.0,
         "magnitude_zero_point": 26.0, "num_exposures": 50,
-        "seeing": 0.5, "psf_type": "GAUSSIAN",
+        "seeing": 0.08, "psf_type": "GAUSSIAN",
         "cadence_days": 20.0,
     },
 }

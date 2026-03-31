@@ -10,7 +10,7 @@ alpha_red: -0.5
 cosmology: !astropy.cosmology.default_cosmology.get []
 
 # --- Dynamically Generated Filters ---
-filters: ['Roman-F062', 'Roman-F087', 'Roman-F106', 'Roman-F129', 'Roman-F158', 'Roman-F184', 'Roman-F146', 'Roman-F213', 'MidEx-A', 'MidEx-B', 'MidEx-C', 'MidEx-D', 'lsst2016-g', 'lsst2016-r', 'lsst2016-i', 'lsst2016-z', 'lsst2016-y']
+filters: ['Roman-F062', 'Roman-F087', 'Roman-F106', 'Roman-F129', 'Roman-F158', 'Roman-F184', 'Roman-F146', 'Roman-F213', 'MidEx-F115', 'MidEx-F150', 'MidEx-F250', 'MidEx-F330', 'MidEx-F400', 'MidEx-F500', 'MidEx-F600', 'MidEx-F700', 'lsst2016-g', 'lsst2016-r', 'lsst2016-i', 'lsst2016-z', 'lsst2016-y']
 
 tables:
   blue:
@@ -38,7 +38,7 @@ tables:
       filter:  bessell-B
 
     # --- Dynamically Generated Magnitude Output Columns ---
-    mag_F062, mag_F087, mag_F106, mag_F129, mag_F158, mag_F184, mag_F146, mag_F213, mag_A, mag_B, mag_C, mag_D, mag_g, mag_r, mag_i, mag_z, mag_y: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
+    mag_F062, mag_F087, mag_F106, mag_F129, mag_F158, mag_F184, mag_F146, mag_F213, mag_F115, mag_F150, mag_F250, mag_F330, mag_F400, mag_F500, mag_F600, mag_F700, mag_g, mag_r, mag_i, mag_z, mag_y: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
       coefficients: $blue.coeff
       filters: $filters
       redshift: $blue.z
@@ -96,7 +96,7 @@ tables:
       filter:  bessell-B
 
     # --- Dynamically Generated Magnitude Output Columns ---
-    mag_F062, mag_F087, mag_F106, mag_F129, mag_F158, mag_F184, mag_F146, mag_F213, mag_A, mag_B, mag_C, mag_D, mag_g, mag_r, mag_i, mag_z, mag_y: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
+    mag_F062, mag_F087, mag_F106, mag_F129, mag_F158, mag_F184, mag_F146, mag_F213, mag_F115, mag_F150, mag_F250, mag_F330, mag_F400, mag_F500, mag_F600, mag_F700, mag_g, mag_r, mag_i, mag_z, mag_y: !skypy.galaxies.spectrum.kcorrect.apparent_magnitudes
       coefficients: $red.coeff
       filters: $filters
       redshift: $red.z
